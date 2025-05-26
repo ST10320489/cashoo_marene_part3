@@ -35,6 +35,15 @@
         android:name="com.iie.st10320489.marene.ui.profile.EditProfileFragment"
         android:label="@string/title_editProfile"
         tools:layout="@layout/fragment_edit_profile" />
+    <fragment
+        android:id="@+id/privacyFragment"
+        android:name="com.iie.st10320489.marene.ui.profile.PrivacyFragment"
+        android:label="Privacy"/>
+
+    <fragment
+        android:id="@+id/helpFragment"
+        android:name="com.iie.st10320489.marene.ui.profile.HelpFragment"
+        android:label="Help"/>
 
     <fragment
         android:id="@+id/navigation_analysis"
@@ -116,10 +125,10 @@
         android:name="com.iie.st10320489.marene.ui.rewards.FragmentRewardsTwo"
         tools:layout="@layout/fragment_rewardstwo" />-->
 
-    <fragment
+<!--    <fragment
         android:id="@+id/navigation_rewards_discount"
         android:name="com.iie.st10320489.marene.ui.rewards.DiscountActivity"
-        tools:layout="@layout/activity_discount" />
+        tools:layout="@layout/activity_discount" />-->
 
 
     <fragment
@@ -138,20 +147,21 @@
     </fragment>
 
 
-    <fragment
+<!--    <fragment
         android:id="@+id/navigation_rewards_discountdetail"
         android:name="com.iie.st10320489.marene.ui.rewards.DiscountDetailActivity"
         tools:layout="@layout/activity_discount_detail">
         <argument
             android:name="discount_image"
             app:argType="integer" />
-    </fragment>
+    </fragment>-->
 
     <!--<fragment
         android:id="@+id/navigation_rewards_claimed"
         android:name="com.iie.st10320489.marene.ui.rewards.FragmentClaimedRewards"
         tools:layout="@layout/fragment_claimed_rewards" />-->
 
+<!--
 
     <fragment
         android:id="@+id/navigation_rewards_qr"
@@ -162,8 +172,9 @@
         android:id="@+id/qrFragment"
         android:name="com.iie.st10320489.marene.ui.rewards.QrFragment"
         android:label="QR Code">
-        <!-- Add actions if needed -->
+        &lt;!&ndash; Add actions if needed &ndash;&gt;
     </fragment>
+-->
 
 
 </navigation>

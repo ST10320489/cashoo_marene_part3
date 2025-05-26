@@ -3,6 +3,7 @@ package com.iie.st10320489.marene;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
@@ -16,7 +17,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.iie.st10320489.marene.ui.onboarding.OnboardingActivity;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SignupActivity extends AppCompatActivity {
 
@@ -95,10 +100,8 @@ public class SignupActivity extends AppCompatActivity {
                 mAuth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
-                                // User created successfully
                                 FirebaseUser firebaseUser = mAuth.getCurrentUser();
                                 if (firebaseUser != null) {
-                                    // Optionally update user profile with display name (name + surname)
                                     String displayName = name + " " + surname;
 
                                     // Save email and UID in SharedPreferences
@@ -107,6 +110,23 @@ public class SignupActivity extends AppCompatActivity {
                                     editor.putString("currentUserEmail", firebaseUser.getEmail());
                                     editor.putString("currentUserId", firebaseUser.getUid());
                                     editor.apply();
+
+                                    // Save user data to Firestore
+                                    FirebaseFirestore db = FirebaseFirestore.getInstance();
+                                    Map<String, Object> userData = new HashMap<>();
+                                    userData.put("name", name);
+                                    userData.put("surname", surname);
+                                    userData.put("email", email); // optional
+
+                                    // Save user profile as a subcollection: /users/{UID}/userProfiles/profile
+                                    db.collection("users")
+                                            .document(firebaseUser.getUid())
+                                            .collection("userProfiles")
+                                            .document("profile")  // or use firebaseUser.getUid() again if you prefer
+                                            .set(userData)
+                                            .addOnSuccessListener(aVoid -> Log.d("SignupActivity", "User profile saved under subcollection"))
+                                            .addOnFailureListener(e -> Log.e("SignupActivity", "Error saving user profile", e));
+
 
                                     Toast.makeText(SignupActivity.this, "Account created!", Toast.LENGTH_SHORT).show();
 
@@ -128,3 +148,4 @@ public class SignupActivity extends AppCompatActivity {
         signInText.setOnClickListener(v -> startActivity(new Intent(SignupActivity.this, LoginActivity.class)));
     }
 }
+
