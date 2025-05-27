@@ -307,8 +307,9 @@
         <TextView
             android:id="@+id/discPage"
             android:layout_marginBottom="40dp"
+            android:layout_marginTop="40dp"
             android:padding="8dp"
-            android:text="Go to Discount Page"
+            android:text="Go to History Page"
             android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

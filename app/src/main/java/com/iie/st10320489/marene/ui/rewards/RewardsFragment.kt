@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -16,6 +17,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.iie.st10320489.marene.R
+import com.iie.st10320489.marene.data.entities.Reward
 import com.iie.st10320489.marene.databinding.FragmentRewardsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -62,7 +64,7 @@ class RewardsFragment : Fragment() {
         // Load rewards
         loadRewardsFromFirestore()
 
-        // 🔑 Get current user info from FirebaseAuth
+        // Get current user info from FirebaseAuth
         val currentUser = FirebaseAuth.getInstance().currentUser
         currentUser?.let { user ->
             val uid = user.uid
@@ -74,7 +76,7 @@ class RewardsFragment : Fragment() {
                 Log.e("RewardsFragment", "Email not found for user.")
             }
 
-            // ✅ Set OnClickListener for Claim button
+            // Set OnClickListener for Claim button
             binding.ItemClaim.setOnClickListener {
                 claimRewards(uid)
             }
@@ -82,8 +84,15 @@ class RewardsFragment : Fragment() {
             Log.e("RewardsFragment", "User not logged in.")
         }
 
+        binding.discPage.setOnClickListener {
+            findNavController().navigate(R.id.navigation_rewards_history)
+        }
+
+
+
         return root
     }
+
 
     private fun getImageResourceByName(name: String): Int {
         return resources.getIdentifier(name, "drawable", requireContext().packageName)
@@ -104,7 +113,8 @@ class RewardsFragment : Fragment() {
                     val item = ClaimItem(
                         reward.name,
                         "${reward.amount} pts",
-                        imageResId
+                        imageResId,
+                        reward.location ?: ""
                     )
 
                     when (reward.type.lowercase()) {
@@ -237,13 +247,19 @@ class RewardsFragment : Fragment() {
                 // Prevent multiple claims
                 val currentClaimKey = "$currentYear-$currentMonth"
                 if (lastClaimed == currentClaimKey) {
-                    Toast.makeText(requireContext(), "You've already claimed your rewards this month.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "You've already claimed your rewards this month.",
+                        Toast.LENGTH_LONG
+                    ).show()
                     return@launchWhenStarted
                 }
 
-                val userSettingsDoc = firestore.collection("user_settings").document(uid).get().await()
+                val userSettingsDoc =
+                    firestore.collection("user_settings").document(uid).get().await()
                 if (!userSettingsDoc.exists()) {
-                    Toast.makeText(requireContext(), "User settings not found.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "User settings not found.", Toast.LENGTH_SHORT)
+                        .show()
                     return@launchWhenStarted
                 }
                 val minGoal = userSettingsDoc.getDouble("minGoal") ?: 0.0
@@ -262,7 +278,11 @@ class RewardsFragment : Fragment() {
 
                 val savingsCategoryId = categoryMap["savings"]
                 if (savingsCategoryId == null) {
-                    Toast.makeText(requireContext(), "Savings category not found.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "Savings category not found.",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     return@launchWhenStarted
                 }
 
@@ -276,7 +296,8 @@ class RewardsFragment : Fragment() {
                     .await()
 
                 val totalSaved = savingsSnapshot.documents.sumOf { it.getDouble("amount") ?: 0.0 }
-                val minPercent = if (minGoal > 0) (totalSaved / minGoal * 100).coerceAtMost(100.0).toInt() else 0
+                val minPercent =
+                    if (minGoal > 0) (totalSaved / minGoal * 100).coerceAtMost(100.0).toInt() else 0
 
                 // 4. Calculate expense percentage
                 val expenseSnapshot = firestore.collection("users").document(uid)
@@ -287,8 +308,11 @@ class RewardsFragment : Fragment() {
                     .get()
                     .await()
 
-                val totalExpenses = expenseSnapshot.documents.sumOf { it.getDouble("amount") ?: 0.0 }
-                val maxPercent = if (maxGoal > 0) (100 - (totalExpenses / maxGoal * 100)).coerceIn(0.0, 100.0).toInt() else 0
+                val totalExpenses =
+                    expenseSnapshot.documents.sumOf { it.getDouble("amount") ?: 0.0 }
+                val maxPercent =
+                    if (maxGoal > 0) (100 - (totalExpenses / maxGoal * 100)).coerceIn(0.0, 100.0)
+                        .toInt() else 0
 
                 // 5. Decide rewards
                 val minGoalMet = minPercent >= 100
@@ -299,12 +323,15 @@ class RewardsFragment : Fragment() {
                 when {
                     minGoalMet && maxGoalMet -> {
                         reward = 20.0
-                        message = "You earned 20 cashoos for meeting both your savings and spending goals!"
+                        message =
+                            "You earned 20 cashoos for meeting both your savings and spending goals!"
                     }
+
                     minGoalMet -> {
                         reward = 10.0
                         message = "You earned 10 cashoos for meeting your savings goal!"
                     }
+
                     maxGoalMet -> {
                         reward = 5.0
                         message = "You earned 5 cashoos for staying within your spending goal!"
@@ -326,10 +353,58 @@ class RewardsFragment : Fragment() {
 
             } catch (e: Exception) {
                 Log.e("RewardsFragment", "Error claiming rewards: ${e.message}", e)
-                Toast.makeText(requireContext(), "An error occurred while claiming rewards.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "An error occurred while claiming rewards.",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
+
+        fun saveClaimedRewardToFirestore(
+            context: Context,
+            reward: Reward,
+            historyItem: RewardHistoryItem,
+            onComplete: (Boolean) -> Unit
+        ) {
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+            val db = FirebaseFirestore.getInstance()
+            val rewardDocRef = db.collection("rewards").document() // auto-generated rewardId
+            val rewardId = rewardDocRef.id
+
+            val rewardData = reward.copy(rewardId = rewardId.hashCode())
+            val historyData = mapOf(
+                "rewardId" to rewardId,
+                "userId" to uid,
+                "title" to historyItem.title,
+                "imageResId" to historyItem.imageResId,
+                "location" to historyItem.location,
+                "dateClaimed" to historyItem.dateClaimed,
+                "expiryTimestamp" to historyItem.expiryTimestamp,
+                "status" to historyItem.status
+            )
+
+            rewardDocRef.set(rewardData)
+                .addOnSuccessListener {
+                    rewardDocRef.collection(uid).document("history")
+                        .set(historyData)
+                        .addOnSuccessListener {
+                            onComplete(true)
+                        }
+                        .addOnFailureListener {
+                            Log.e("Firestore", "Failed to write reward history", it)
+                            onComplete(false)
+                        }
+                }
+                .addOnFailureListener {
+                    Log.e("Firestore", "Failed to write reward", it)
+                    onComplete(false)
+                }
+        }
+
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()

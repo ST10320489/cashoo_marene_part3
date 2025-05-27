@@ -25,6 +25,7 @@ class ClaimsAdapter(private var items: List<ClaimItem>) : RecyclerView.Adapter<C
                     putInt("IMAGE_RES_ID", claim.clmImageResId)
                     putString("TITLE", claim.clmTitle)
                     putString("POINTS", claim.clmPoints)
+                    putString("LOCATION", claim.location)
                 }
                 itemView.findNavController().navigate(R.id.navigation_rewards_claimdetail, bundle)
             }

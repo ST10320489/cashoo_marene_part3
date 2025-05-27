@@ -4,7 +4,8 @@ data class RewardItem(
     val name: String = "",
     val amount: Int = 0,
     val imageUrl: String = "",
-    val type: String = ""
+    val type: String = "",
+    val location: String? = null
 ) // (Code With Cal, 2025)
 
 //Reference List:
